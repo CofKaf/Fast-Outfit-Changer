@@ -59,11 +59,20 @@ init -10 python in fop_express:
             return "Could you quickly rearrange your appearance?"
 
     # FUNCIONES DE VERIFICACIÓN DE SUBMODS EXTERNOS
+    def fop_existe_ultimate_random():
+        return renpy.has_label("ultimate_random_desk") or renpy.has_label("ultimate_random_outfit") or hasattr(store, "ultimate_random_desk")
+
     def fop_existe_random_desk():
-        return hasattr(store, "ultimate_random_desk")
+        return fop_existe_ultimate_random()
 
     def fop_existe_outfit_selector():
-        return hasattr(store, "kventis_outfit_submod")
+        return renpy.has_label("monika_outfit_save") or hasattr(store, "kventis_outfit_submod")
+
+    def fop_existe_new_face():
+        return renpy.has_label("new_face")
+
+    def fop_existe_emerald_box():
+        return renpy.has_label("eb_skin_select")
 
     # Textos bilingües para los botones de funciones especiales y extras
     TEXTOS_EXTRAS = {
@@ -71,11 +80,19 @@ init -10 python in fop_express:
         "random_outfit": {"es": "¿Atuendo Aleatorio?", "en": "Random Outfit?"},
         "save_outfit": {"es": "Guardar atuendo", "en": "Save outfit"},
         "load_outfit": {"es": "Usar atuendo", "en": "Load outfit"},
-        "delete_outfit": {"es": "Eliminar atuendo", "en": "Delete outfit"}
+        "delete_outfit": {"es": "Eliminar atuendo", "en": "Delete outfit"},
+        "emerald_box": {"es": "Configurar sprites", "en": "Configure Sprites"}
     }
 
     def fop_obtener_texto_extra(clave):
-        info = TEXTOS_EXTRAS.get(clave, {"es": clave, "en": clave})
+        if clave == "toggle_face":
+            if getattr(store.persistent, "new_face", False):
+                info = {"es": "Revertir rostro", "en": "Revert Face"}
+            else:
+                info = {"es": "¿Rostro original?", "en": "Original Face?"}
+        else:
+            info = TEXTOS_EXTRAS.get(clave, {"es": clave, "en": clave})
+        
         idioma_actual = getattr(store.persistent, "fop_idioma", "es")
         return info.get(idioma_actual, info["es"])
 
@@ -127,7 +144,9 @@ init -10 python in fop_express:
             # === EXTRAS / FONDO ===
             "balloon": {"es": "Globos", "en": "Balloons", "sec": "extras"},
             "balloons_acs": {"es": "Globos", "en": "Balloons", "sec": "extras"},
+            "stringlights_acs": {"es": "Luces", "en": "String Lights", "sec": "extras"},
             "backpiece": {"es": "Espalda", "en": "Backpiece", "sec": "extras"},
+            "backpiece_acs": {"es": "Espalda", "en": "Backpiece", "sec": "extras"},
             "headpiece": {"es": "Tiaras", "en": "Headpiece", "sec": "extras"},
             "headpiece_acs": {"es": "Tiaras", "en": "Headpiece", "sec": "extras"},
             "pin_acs": {"es": "Pines", "en": "Pins", "sec": "extras"},
@@ -190,7 +209,9 @@ init 3 python:
             "• {a=https://github.com/Friends-of-Monika/mas-outfits}{i}{u}Outfit Selector{/u}{/i}{/a}\n"
             "• {a=https://github.com/mayday-mayjay/MJ-MAS-selector-city/tree/main}{i}{u}Selector City{/u}{/i}{/a}\n"
             "• {a=https://www.reddit.com/r/MASFandom/comments/1vdcoos/monika_do_you_want_to_hold_a_plushie_plushie/}{i}{u}Plushie Selector{/u}{/i}{/a}\n"
-            "• {a=https://www.reddit.com/r/MASFandom/comments/1x6i0aw/balloon_selector/}{i}{u}Balloons Selector{/u}{/i}{/a}"
+            "• {a=https://www.reddit.com/r/MASFandom/s/Gds3eyhuLH}{i}{u}Decoration Selector{/u}{/i}{/a}\n"
+            "• {a=https://www.reddit.com/r/MASFandom/s/uxOPsg7Y8v}{i}{u}Facial Features Selector{/u}{/i}{/a}\n"
+            "• {a=https://github.com/zer0fixer/MAS-EmeraldBox}{i}{u}Emerald Box{/u}{/i}{/a}"
         )
         desc_en = (
             "Allows you to quickly change Monika's clothes, accessories, and desk.\n"
@@ -199,7 +220,9 @@ init 3 python:
             "• {a=https://github.com/Friends-of-Monika/mas-outfits}{i}{u}Outfit Selector{/u}{/i}{/a}\n"
             "• {a=https://github.com/mayday-mayjay/MJ-MAS-selector-city/tree/main}{i}{u}Selector City{/u}{/i}{/a}\n"
             "• {a=https://www.reddit.com/r/MASFandom/comments/1vdcoos/monika_do_you_want_to_hold_a_plushie_plushie/}{i}{u}Plushie Selector{/u}{/i}{/a}\n"
-            "• {a=https://www.reddit.com/r/MASFandom/comments/1x6i0aw/balloon_selector/}{i}{u}Balloons Selector{/u}{/i}{/a}"
+            "• {a=https://www.reddit.com/r/MASFandom/s/Gds3eyhuLH}{i}{u}Decoration Selector{/u}{/i}{/a}\n"
+            "• {a=https://www.reddit.com/r/MASFandom/s/uxOPsg7Y8v}{i}{u}Facial Features Selector{/u}{/i}{/a}\n"
+            "• {a=https://github.com/zer0fixer/MAS-EmeraldBox}{i}{u}Emerald Box{/u}{/i}{/a}"
         )
 
         idioma_actual = getattr(store.persistent, "fop_idioma", "es")
@@ -207,7 +230,7 @@ init 3 python:
         store.mas_submod_utils.Submod(
             author="CofKaf",
             name="Fast Outfit Changer",
-            version="1.0.0",
+            version="1.1.0",
             description=desc_es if idioma_actual == "es" else desc_en,
             settings_pane="fop_express_settings_pane"
         )
@@ -251,10 +274,28 @@ screen fop_express_settings_pane():
 
 label fop_express_outfit_menu:
     $ idioma_actual = getattr(store.persistent, "fop_idioma", "es")
+    $ opc_saludo = renpy.random.choice([1, 2, 3])
+
     if idioma_actual == "es":
-        m 1eua "¡Claro que sí, [player]! Dime qué quieres cambiar."
+        if opc_saludo == 1:
+            m 1eub "¡Claro que sí, [player]!"
+            extend 2hua " ¡Dime qué quieres cambiar~!"
+        elif opc_saludo == 2:
+            m 4sua "¡Me encanta que me pidas esto, [player]!"
+            extend 2hub " ¿Qué modificamos hoy?"
+        else:
+            m 1eua "¡Por supuesto, [player]!"
+            extend 2hub " Jeje, ¿qué estilo probamos ahora?"
     else:
-        m 1eua "Sure, [player]! What would you like to change?"
+        if opc_saludo == 1:
+            m 1eub "Sure, [player]!"
+            extend 2hua " What would you like to change~?"
+        elif opc_saludo == 2:
+            m 4sua "I love when you ask me this, [player]!"
+            extend 2hub " What are we tweaking today?"
+        else:
+            m 1eua "Of course, [player]!"
+            extend 2hub " Ehehe, what style should we try out now?"
 
     $ fop_categoria_activa = "clothes"
     $ fop_express.fop_cambios_hechos = False
@@ -284,6 +325,32 @@ label fop_express_outfit_menu:
             jump .loop
         elif _return == "fop_accion_delete_outfit":
             call monika_outfit_delete
+            $ fop_express.fop_cambios_hechos = True
+            jump .loop
+
+        elif _return == "fop_accion_toggle_face":
+            if getattr(store.persistent, "new_face", False):
+                call nonew_face
+            else:
+                call new_face
+            
+            # Si se pidió reiniciar el juego, devolvemos el quit directamente a MAS
+            if _return == "quit":
+                return "quit"
+                
+            $ fop_express.fop_cambios_hechos = True
+            jump .loop
+        elif _return == "fop_accion_emerald_box":
+            call eb_skin_select
+            
+            # Si canceló o puso Nevermind, vuelve limpio a tu menú
+            if _return == "cancel" or _return is None:
+                jump .loop
+            
+            # Si Emerald Box pide reiniciar, enviamos el quit directamente al motor
+            if _return == "quit":
+                return "quit"
+                
             $ fop_express.fop_cambios_hechos = True
             jump .loop
 
@@ -342,7 +409,7 @@ label fop_express_outfit_menu:
             ]
             $ opciones_noche_en = [
                 "I love this style for spending the night with you, %s~" % store.player,
-                "Ehehe, a perfect touch to stay comfy at this hour, %s." % store.player,
+                "Ehehe, a perfect touch to stay comfy at this hour, %s.",
                 "Looks great! Nothing like a fresh look before it gets later.",
                 "Thank you, %s! I feel super pretty to keep you company tonight~" % store.player
             ]
@@ -357,7 +424,7 @@ label fop_express_outfit_menu:
             ]
             $ opciones_tarde_en = [
                 "Just in time for the sunset, %s! I love how it looks on me~" % store.player,
-                "It looks so lovely in the afternoon light, %s!" % store.player,
+                "It looks so lovely in the afternoon light, %s!",
                 "Ehehe, a perfect change to wrap up the day together.",
                 "Thank you, %s! I love how you put everything together~" % store.player
             ]
@@ -372,8 +439,8 @@ label fop_express_outfit_menu:
             ]
             $ opciones_dia_en = [
                 "Done, %s! I love how you dressed me today~" % store.player,
-                "A great look to start the day together, %s!" % store.player,
-                "Ehehe, thanks for picking this out for me, %s! You made my day." % store.player,
+                "A great look to start the day together, %s!",
+                "Ehehe, thanks for picking this out for me, %s! You made my day.",
                 "I feel super refreshed! What do you think, %s?" % store.player
             ]
             $ msj = renpy.random.choice(opciones_dia_es if es_espanol else opciones_dia_en)
@@ -399,57 +466,63 @@ screen fop_express_wardrobe_screen():
     else:
         $ texto_boton_final = "Cancelar" if es_espanol else "Cancel"
 
-    # --- 1. PANEL FLOTANTE IZQUIERDO (ESTIRADO HACIA LA DERECHA) ---
-    if fop_express.fop_existe_outfit_selector():
-        frame:
-            style_prefix "mas_ui"
-            xpos 60          # Ajustado para que el borde izquierdo alinee perfecto
-            ypos 265
-            xsize 210        # Ancho del contenedor general ampliado
-            ysize 210        # Alto ampliado para acomodar los botones altos
-            background None
+    # --- 1. PANEL FLOTANTE IZQUIERDO (GUARDAR / CARGAR / BORRAR ATUENDO) ---
+    frame:
+        style_prefix "mas_ui"
+        xpos 59          
+        ypos 265
+        xsize 210        
+        ysize 210        
+        background None
 
-            vbox:
-                spacing 8
+        vbox:
+            spacing 8
+            xalign 0.5
+            
+            # Botón Guardar Atuendo
+            button:
+                style "scrollable_menu_button"
+                xsize 200    
+                ysize 48     
                 xalign 0.5
-                button:
-                    style "scrollable_menu_button"
-                    xsize 200    # Botón más ancho para que la letra 17 quepa cómoda
-                    ysize 48     # Botón más alto y estilizado verticalmente
+                sensitive fop_express.fop_existe_outfit_selector()
+                action Return("fop_accion_save_outfit")
+                text fop_express.fop_obtener_texto_extra("save_outfit"):
+                    style "scrollable_menu_button_text"
                     xalign 0.5
-                    action Return("fop_accion_save_outfit")
-                    text fop_express.fop_obtener_texto_extra("save_outfit"):
-                        style "scrollable_menu_button_text"
-                        xalign 0.5
-                        yalign 0.5
-                        size 17
-                        bold True
+                    yalign 0.5
+                    size 17
+                    bold True
 
-                button:
-                    style "scrollable_menu_button"
-                    xsize 200
-                    ysize 48
+            # Botón Usar Atuendo
+            button:
+                style "scrollable_menu_button"
+                xsize 200
+                ysize 48
+                xalign 0.5
+                sensitive fop_express.fop_existe_outfit_selector()
+                action Return("fop_accion_load_outfit")
+                text fop_express.fop_obtener_texto_extra("load_outfit"):
+                    style "scrollable_menu_button_text"
                     xalign 0.5
-                    action Return("fop_accion_load_outfit")
-                    text fop_express.fop_obtener_texto_extra("load_outfit"):
-                        style "scrollable_menu_button_text"
-                        xalign 0.5
-                        yalign 0.5
-                        size 17
-                        bold True
+                    yalign 0.5
+                    size 17
+                    bold True
 
-                button:
-                    style "scrollable_menu_button"
-                    xsize 200
-                    ysize 48
+            # Botón Eliminar Atuendo
+            button:
+                style "scrollable_menu_button"
+                xsize 200
+                ysize 48
+                xalign 0.5
+                sensitive fop_express.fop_existe_outfit_selector()
+                action Return("fop_accion_delete_outfit")
+                text fop_express.fop_obtener_texto_extra("delete_outfit"):
+                    style "scrollable_menu_button_text"
                     xalign 0.5
-                    action Return("fop_accion_delete_outfit")
-                    text fop_express.fop_obtener_texto_extra("delete_outfit"):
-                        style "scrollable_menu_button_text"
-                        xalign 0.5
-                        yalign 0.5
-                        size 17
-                        bold True
+                    yalign 0.5
+                    size 17
+                    bold True
 
     # --- 2. PANEL PRINCIPAL DERECHO ---
     frame:
@@ -464,36 +537,66 @@ screen fop_express_wardrobe_screen():
             spacing 4
             xalign 0.5
 
-            # Botones aleatorios superiores
-            if fop_express.fop_existe_random_desk():
-                button:
-                    style "scrollable_menu_button"
-                    xsize 245
-                    ysize 36
+            # Botón Escritorio Aleatorio (Ultimate Random)
+            button:
+                style "scrollable_menu_button"
+                xsize 245
+                ysize 36
+                xalign 0.5
+                sensitive fop_express.fop_existe_ultimate_random()
+                action Return("fop_accion_random_desk")
+                text fop_express.fop_obtener_texto_extra("random_desk"):
+                    style "scrollable_menu_button_text"
                     xalign 0.5
-                    action Return("fop_accion_random_desk")
-                    text fop_express.fop_obtener_texto_extra("random_desk"):
-                        style "scrollable_menu_button_text"
-                        xalign 0.5
-                        yalign 0.5
-                        size 17
-                        bold True
+                    yalign 0.5
+                    size 17
+                    bold True
 
-            if fop_express.fop_existe_outfit_selector():
-                button:
-                    style "scrollable_menu_button"
-                    xsize 245
-                    ysize 36
+            # Botón Atuendo Aleatorio (Ultimate Random)
+            button:
+                style "scrollable_menu_button"
+                xsize 245
+                ysize 36
+                xalign 0.5
+                sensitive fop_express.fop_existe_ultimate_random()
+                action Return("fop_accion_random_outfit")
+                text fop_express.fop_obtener_texto_extra("random_outfit"):
+                    style "scrollable_menu_button_text"
                     xalign 0.5
-                    action Return("fop_accion_random_outfit")
-                    text fop_express.fop_obtener_texto_extra("random_outfit"):
-                        style "scrollable_menu_button_text"
-                        xalign 0.5
-                        yalign 0.5
-                        size 17
-                        bold True
+                    yalign 0.5
+                    size 17
+                    bold True
 
-            # Espacio simétrico antes de las pestañas de categorías
+            # Botón Alternar Rostro Original (New Face)
+            button:
+                style "scrollable_menu_button"
+                xsize 245
+                ysize 36
+                xalign 0.5
+                sensitive fop_express.fop_existe_new_face()
+                action Return("fop_accion_toggle_face")
+                text fop_express.fop_obtener_texto_extra("toggle_face"):
+                    style "scrollable_menu_button_text"
+                    xalign 0.5
+                    yalign 0.5
+                    size 17
+                    bold True
+
+            # Botón Configurar Sprites (Emerald Box)
+            button:
+                style "scrollable_menu_button"
+                xsize 245
+                ysize 36
+                xalign 0.5
+                sensitive fop_express.fop_existe_emerald_box()
+                action Return("fop_accion_emerald_box")
+                text fop_express.fop_obtener_texto_extra("emerald_box"):
+                    style "scrollable_menu_button_text"
+                    xalign 0.5
+                    yalign 0.5
+                    size 17
+                    bold True
+
             null height 6
 
             # Pestañas superiores de categorías (Grid 2x2)
@@ -505,10 +608,9 @@ screen fop_express_wardrobe_screen():
                 textbutton fop_express.fop_obtener_texto_pestana("escritorio") action Function(fop_express.fop_cambiar_pestana, "escritorio") style "scrollable_menu_button" xsize 120 ysize 34 text_xalign 0.5 text_yalign 0.5
                 textbutton fop_express.fop_obtener_texto_pestana("extras") action Function(fop_express.fop_cambiar_pestana, "extras") style "scrollable_menu_button" xsize 120 ysize 34 text_xalign 0.5 text_yalign 0.5
 
-            # Espacio simétrico antes de arrancar el listado con scroll
             null height 4
 
-            # Viewport con la barra a la izquierda ("c l")
+            # Viewport con la lista de categorías normales del juego
             side "c l":
                 ysize 220
                 xsize 245
@@ -537,14 +639,12 @@ screen fop_express_wardrobe_screen():
                                     yalign 0.5
                                     size 15
                                     bold True
-                                    
 
                 vbar value YScrollValue("cat_viewport")
 
-            # Espacio simétrico antes del botón inferior
             null height 6
 
-            # Botón "Cancelar" / "Listo" inferior
+            # Botón Inferior (Cancelar / Listo)
             button:
                 style "scrollable_menu_button"
                 xsize 245
